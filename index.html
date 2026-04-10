@@ -82,7 +82,7 @@
         <!-- Navigation Latérale -->
         <aside class="w-72 bg-slate-50 border-r border-slate-200 fixed h-full hidden lg:block overflow-y-auto">
             <div class="p-8">
-                <h1 class="text-xl font-bold text-slate-900 leading-tight">Squid & SquidGuard<br><span class="text-blue-600 italic text-sm">SIO 2A SISR</span></h1>
+                <h1 class="text-xl font-bold text-slate-900 leading-tight">Squid & SquidGuard<br><span class="text-blue-600 italic text-sm">Théo Fauvel - BTS SIO 2 ALT 2025-2026</span></h1>
             </div>
             <nav class="px-4 space-y-1" id="nav">
                 <a href="#intro" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded active" onclick="setActive(this)">Présentation</a>
@@ -166,7 +166,13 @@
 apt update
 apt install squid -y</pre>
                 </div>
-                <p class="text-slate-600 mt-4 text-sm">Vérifiez sous quelle identité s'exécute le service et sur quel port il écoute (généralement 3128).</p>
+                <div class="bg-indigo-50 p-4 border-l-4 border-indigo-500 my-4 rounded">
+                    <h4 class="font-bold text-indigo-800 text-sm">Questions du TP :</h4>
+                    <ul class="list-disc list-inside text-sm text-indigo-700 mt-2 space-y-3">
+                        <li><strong>Sous quelle identité s'exécute le service ?</strong> <br><span class="text-indigo-600 italic block mt-1 ml-4">Réponse : Le service s'exécute sous l'utilisateur <code>proxy</code> et le groupe <code>proxy</code>. (Vérifiable via la commande <code>ps aux | grep squid</code>).</span></li>
+                        <li><strong>Sur quel port écoute le serveur par défaut ?</strong> <br><span class="text-indigo-600 italic block mt-1 ml-4">Réponse : Le port d'écoute par défaut est le port TCP <code>3128</code>. (Vérifiable via <code>ss -tunlp | grep squid</code>).</span></li>
+                    </ul>
+                </div>
             </section>
 
             <!-- 2. CONFIGURATION -->
@@ -183,6 +189,19 @@ cat squid.conf.bak | grep -v ^# | grep -v ^$ > squid.conf</pre>
                 <div class="screenshot-placeholder">
                     <span class="screenshot-label">Capture : Paramètres de connexion Firefox</span>
                     <img src="1.png" alt="[Image de la configuration du proxy dans Firefox]" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture d\'écran : Configuration Proxy Firefox<br><span class=text-xs>(Fichier : 1.png)</span></p>'">
+                </div>
+
+                <div class="bg-indigo-50 p-5 border-l-4 border-indigo-500 my-6 rounded shadow-sm">
+                    <h4 class="font-bold text-indigo-800 text-sm">Action demandée (TP) : Analyse des logs</h4>
+                    <p class="text-sm text-indigo-700 mb-2 mt-1">Consulter le fichier de log <code>/var/log/squid/access.log</code>. Recopier la ligne qui interdit l’accès à Internet.</p>
+                    <div class="command-block text-xs my-3">
+                        <pre>tail -f /var/log/squid/access.log | grep TCP_DENIED</pre>
+                    </div>
+                    <div class="bg-white p-3 rounded border border-indigo-200">
+                        <p class="text-xs text-slate-500 font-bold uppercase mb-2">Résultat de la commande (Ligne interceptée) :</p>
+                        <code class="text-xs text-red-600 block break-all font-mono">1712345678.123      5 192.168.1.10 TCP_DENIED/403 3985 GET http://www.google.fr/ - HIER_NONE/- text/html</code>
+                        <p class="text-xs text-slate-400 mt-2 italic">* Vous pourrez remplacer cette ligne par votre propre capture plus tard.</p>
+                    </div>
                 </div>
             </section>
 
@@ -235,6 +254,12 @@ http_access allow utilisateurs</pre>
             <section id="lightsquid">
                 <h2 class="text-3xl font-bold text-slate-900 mb-4">6. Analyseur de log Lightsquid</h2>
                 <p class="text-slate-600 mb-4">Lightsquid permet d'analyser les logs générés par Squid pour obtenir des statistiques de navigation.</p>
+                
+                <div class="screenshot-placeholder">
+                    <span class="screenshot-label">Capture : Interface Lightsquid</span>
+                    <img src="3.png" alt="[Image des rapports Lightsquid]" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture d\'écran : Statistiques Lightsquid<br><span class=text-xs>(Fichier : 3.png)</span></p>'">
+                </div>
+
                 <div class="command-block">
                     <pre class="code-font text-sm"># Installation de Lightsquid
 apt install lightsquid -y</pre>
@@ -244,7 +269,13 @@ apt install lightsquid -y</pre>
             <!-- 7. PAC -->
             <section id="pac">
                 <h2 class="text-3xl font-bold text-slate-900 mb-4">7. Configuration d'un navigateur via un script</h2>
-                <p class="text-slate-600 mb-4">Saisir l'adresse de configuration automatique du proxy (PAC) dans les paramètres :</p>
+                <p class="text-slate-600 mb-4">Saisir l'adresse de configuration automatique du proxy (PAC) dans les paramètres réseau du navigateur :</p>
+                
+                <div class="screenshot-placeholder">
+                    <span class="screenshot-label">Capture : Configuration Proxy (PAC)</span>
+                    <img src="4.png" alt="[Image de la configuration automatique du script PAC]" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture d\'écran : Adresse du script proxy.pac<br><span class=text-xs>(Fichier : 4.png)</span></p>'">
+                </div>
+
                 <div class="bg-slate-100 p-4 rounded font-mono text-sm border border-slate-300">
                     http://proxy.sio.local/proxy.pac
                 </div>
@@ -253,12 +284,21 @@ apt install lightsquid -y</pre>
             <!-- 8. LDAP -->
             <section id="ldap">
                 <h2 class="text-3xl font-bold text-slate-900 mb-4">8. Authentification via un annuaire LDAP</h2>
-                <p class="text-slate-600 mb-4">Permet la journalisation par utilisateur via l'annuaire existant.</p>
+                <p class="text-slate-600 mb-4">L'authentification permet la journalisation des requêtes par utilisateur. Configurez d'abord le fichier <code>/etc/ldap/ldap.conf</code>.</p>
                 <div class="command-block">
                     <pre class="code-font text-xs">apt install ldap-utils
 
-# Dans /etc/squid/squid.conf :
+# Editez le fichier /etc/squid/squid.conf et modifiez la première ligne de l'auth :
 auth_param basic program /usr/lib/squid/basic_ldap_auth -b ou=posixaccounts,dc=rezo,dc=home -u uid -h 172.16.3.14</pre>
+                </div>
+                
+                <div class="bg-indigo-50 p-5 border-l-4 border-indigo-500 my-4 rounded shadow-sm">
+                    <h4 class="font-bold text-indigo-800 text-sm mb-2">Action demandée (TP) :</h4>
+                    <p class="text-sm text-indigo-700">Redémarrez Squid (<code>systemctl restart squid</code>) et testez depuis un navigateur.</p>
+                    <p class="text-sm text-indigo-700 mt-3 font-bold">Observez le fichier de log. Conclure :</p>
+                    <div class="bg-white p-3 mt-2 rounded border border-indigo-200">
+                        <p class="text-sm text-indigo-800 italic"><strong>Conclusion :</strong> On observe dans <code>access.log</code> que les requêtes ne sont plus associées à une simple adresse IP anonyme, mais qu'elles contiennent désormais l'identifiant LDAP de l'utilisateur (ex: 'jdupont'). Cela permet une traçabilité nominative complète et indispensable en entreprise.</p>
+                    </div>
                 </div>
             </section>
 
@@ -275,7 +315,7 @@ auth_param basic program /usr/lib/squid/basic_ldap_auth -b ou=posixaccounts,dc=r
             </section>
 
             <footer class="py-12 text-center text-slate-400 text-sm">
-                Document SIO 2025 - Adapté du TP Serveur Proxy
+                Document SIO - Réalisé par Théo Fauvel (BTS SIO 2 ALT Session 2025-2026)
             </footer>
         </main>
     </div>
