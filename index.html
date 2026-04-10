@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dossier d'Exploitation - Proxy Squid + IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        .code-font { font-family: 'Fira Code', monospace; }
+        
+        .sidebar-link {
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+        .sidebar-link.active {
+            background: #f1f5f9;
+            color: #2563eb;
+            border-left-color: #2563eb;
+            font-weight: 600;
+        }
+        
+        .command-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.25rem;
+            border-radius: 0.75rem;
+            position: relative;
+            margin: 1rem 0;
+            border: 1px solid #334155;
+        }
+
+        .screenshot-placeholder {
+            background: #f1f5f9;
+            border: 2px dashed #cbd5e1;
+            border-radius: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            margin: 1.5rem 0;
+            color: #64748b;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .screenshot-placeholder img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .screenshot-label {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #1e293b;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .ai-card {
+            background: linear-gradient(135deg, #eff6ff 0%, #faf5ff 100%);
+            border: 1px solid #e0e7ff;
+        }
+
+        section { padding-top: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 3rem; }
+    </style>
+</head>
+<body class="bg-white text-slate-800">
+
+    <div class="flex min-h-screen">
+        
+        <!-- Navigation Latérale -->
+        <aside class="w-72 bg-slate-50 border-r border-slate-200 fixed h-full hidden lg:block overflow-y-auto">
+            <div class="p-8">
+                <h1 class="text-xl font-bold text-slate-900 leading-tight">Squid & SquidGuard<br><span class="text-blue-600 italic text-sm">SIO 2A SISR</span></h1>
+            </div>
+            <nav class="px-4 space-y-1" id="nav">
+                <a href="#intro" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded active" onclick="setActive(this)">Présentation</a>
+                <a href="#gemini-tool" class="sidebar-link block px-4 py-2 text-sm text-indigo-600 font-bold rounded bg-indigo-50" onclick="setActive(this)">✨ Assistant IA Gemini</a>
+                <a href="#install" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">1. Installation de Squid</a>
+                <a href="#config" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">2. Configuration de base</a>
+                <a href="#acl" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">3. Les contrôles d'accès</a>
+                <a href="#auth" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">4. Authentification utilisateurs</a>
+                <a href="#squidguard" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">5. SquidGuard</a>
+                <a href="#lightsquid" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">6. Analyseur Lightsquid</a>
+                <a href="#pac" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">7. Script Navigateur (PAC)</a>
+                <a href="#ldap" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">8. Annuaire LDAP</a>
+                <a href="#conclusion" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">9. Conclusion & Hiérarchie</a>
+            </nav>
+        </aside>
+
+        <!-- Contenu Principal -->
+        <main class="flex-1 lg:ml-72 p-6 lg:p-16 max-w-5xl">
+            
+            <section id="intro">
+                <h2 class="text-4xl font-bold text-slate-900 mb-6 tracking-tight">Le Serveur Proxy-Mandataire</h2>
+                <p class="text-lg text-slate-600 leading-relaxed mb-6">
+                    Le terme proxy se traduit par "mandat". Un serveur proxy agit comme un serveur mandataire réalisant à votre place des requêtes réseaux protocolaires (HTTP, FTP).
+                </p>
+                <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 flex items-start gap-4">
+                    <div class="p-3 bg-blue-500 rounded-lg text-white">💡</div>
+                    <div>
+                        <h4 class="font-bold text-blue-900 uppercase text-xs tracking-wider">Fonctions principales</h4>
+                        <p class="text-sm text-blue-800 leading-relaxed mt-1">
+                            1. Mettre en cache des éléments (images, pages HTML...).<br>
+                            2. Filtrer des données.<br>
+                            Un proxy agit selon deux modes : <strong>serveur</strong> (configuration manuelle du navigateur) ou <strong>transparent</strong>.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ✨ SECTION GEMINI API INTEGRATION ✨ -->
+            <section id="gemini-tool" class="ai-card p-8 rounded-3xl mb-8 shadow-sm">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="bg-indigo-600 text-white p-2 rounded-lg italic font-bold">✨</div>
+                    <h2 class="text-2xl font-bold text-indigo-900">Assistant IA Gemini pour Squid</h2>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Feature 1: Configuration Generator -->
+                    <div>
+                        <h4 class="font-bold text-indigo-800 mb-2">Générateur d'ACL ✨</h4>
+                        <p class="text-xs text-indigo-600 mb-4">Décrivez votre besoin en français (ex: "Autorise le réseau 192.168.1.0/24 le matin").</p>
+                        <div class="flex flex-col gap-2">
+                            <input type="text" id="ai-prompt-config" placeholder="Ex: Bloquer les IP 10.0.0.5 à 10.0.0.10..." 
+                                   class="w-full p-3 rounded-xl border border-indigo-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                            <button onclick="generateAiConfig()" id="btn-config" class="bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
+                                ✨ Générer la directive
+                            </button>
+                        </div>
+                        <div id="ai-response-config" class="mt-4 hidden p-4 bg-slate-900 rounded-xl text-green-400 font-mono text-xs overflow-x-auto whitespace-pre-wrap"></div>
+                    </div>
+
+                    <!-- Feature 2: Log/Error Explainer -->
+                    <div>
+                        <h4 class="font-bold text-indigo-800 mb-2">Analyseur de Logs ✨</h4>
+                        <p class="text-xs text-indigo-600 mb-4">Collez une ligne du fichier access.log ou un code d'erreur.</p>
+                        <div class="flex flex-col gap-2">
+                            <textarea id="ai-prompt-log" placeholder="Ex: 1612345678.123 192.168.1.5 TCP_DENIED/403..." 
+                                      class="w-full p-3 rounded-xl border border-indigo-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm h-20"></textarea>
+                            <button onclick="analyzeAiLog()" id="btn-log" class="bg-purple-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-purple-700 transition-all flex items-center justify-center gap-2">
+                                ✨ Analyser le log
+                            </button>
+                        </div>
+                        <div id="ai-response-log" class="mt-4 hidden p-4 bg-white border border-indigo-100 rounded-xl text-indigo-900 text-xs italic"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 1. INSTALLATION -->
+            <section id="install">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">1. Installation de Squid</h2>
+                <div class="command-block">
+                    <pre class="code-font text-sm"># Installation du paquet Squid
+apt update
+apt install squid -y</pre>
+                </div>
+                <p class="text-slate-600 mt-4 text-sm">Vérifiez sous quelle identité s'exécute le service et sur quel port il écoute (généralement 3128).</p>
+            </section>
+
+            <!-- 2. CONFIGURATION -->
+            <section id="config">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">2. Configuration de base</h2>
+                <p class="text-slate-600 mb-4">Le fichier d'origine comprend plus de 5000 lignes. Effectuez une sauvegarde puis un nettoyage pour ne garder que les lignes actives :</p>
+                <div class="command-block">
+                    <pre class="code-font text-sm">cp /etc/squid/squid.conf /etc/squid/squid.conf.bak
+cat squid.conf.bak | grep -v ^# | grep -v ^$ > squid.conf</pre>
+                </div>
+
+                <h3 class="font-bold text-slate-800 mt-8 mb-2">Configuration du navigateur</h3>
+                <p class="text-slate-600 text-sm mb-4">En mode serveur, modifiez les paramètres de connexion du navigateur du poste client.</p>
+                <div class="screenshot-placeholder">
+                    <span class="screenshot-label">Capture : Paramètres de connexion Firefox</span>
+                    <img src="image_199c40.png" alt="[Image de la configuration du proxy dans Firefox]" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture d\'écran : Configuration Proxy Firefox<br><span class=text-xs>(Fichier : image_199c40.png)</span></p>'">
+                </div>
+            </section>
+
+            <!-- 3. ACL -->
+            <section id="acl">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">3. Les contrôles d'accès</h2>
+                
+                <h3 class="font-bold text-slate-800 mt-4 mb-2">3.1 Autoriser l'utilisation du proxy pour le réseau local</h3>
+                <p class="text-slate-600 mb-4 text-sm">Si vous naviguez avant d'avoir configuré Squid, l'accès est refusé.</p>
+                <div class="screenshot-placeholder">
+                    <span class="screenshot-label">Capture : Erreur 403 - Accès Refusé</span>
+                    <img src="image_199c9d.png" alt="[Image de l'erreur d'accès refusé de Squid]" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture d\'écran : Erreur Squid Accès Interdit<br><span class=text-xs>(Fichier : image_199c9d.png)</span></p>'">
+                </div>
+                <div class="command-block">
+                    <pre class="code-font text-sm">acl monlan src 172.17.0.0/16
+http_access allow monlan</pre>
+                </div>
+
+                <h3 class="font-bold text-slate-800 mt-8 mb-2">3.2 Contrôle d'accès horaire</h3>
+                <div class="command-block">
+                    <pre class="code-font text-sm">acl limithour time 16:00-17:30
+http_access allow allowed_hosts limithour</pre>
+                </div>
+            </section>
+
+            <!-- 4. AUTH -->
+            <section id="auth">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">4. Authentification des utilisateurs</h2>
+                <div class="command-block">
+                    <pre class="code-font text-xs"># Création du fichier et de l'utilisateur
+htpasswd -b /etc/squid/squidusers tintin reporter
+
+# Configuration dans squid.conf (au début du fichier)
+auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/squidusers
+acl utilisateurs proxy_auth REQUIRED
+http_access allow utilisateurs</pre>
+                </div>
+            </section>
+
+            <!-- 5. SQUIDGUARD -->
+            <section id="squidguard">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">5. SquidGuard</h2>
+                <p class="text-slate-600 mb-4">SquidGuard permet le filtrage à partir de listes noires (Blacklists).</p>
+                <div class="command-block text-xs">
+                    <pre>url_rewrite_program /usr/bin/squidGuard -c /etc/squidguard/squidGuard.conf</pre>
+                </div>
+            </section>
+
+            <!-- 6. LIGHTSQUID -->
+            <section id="lightsquid">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">6. Analyseur de log Lightsquid</h2>
+                <p class="text-slate-600 mb-4">Lightsquid permet d'analyser les logs générés par Squid pour obtenir des statistiques de navigation.</p>
+                <div class="command-block">
+                    <pre class="code-font text-sm"># Installation de Lightsquid
+apt install lightsquid -y</pre>
+                </div>
+            </section>
+
+            <!-- 7. PAC -->
+            <section id="pac">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">7. Configuration d'un navigateur via un script</h2>
+                <p class="text-slate-600 mb-4">Saisir l'adresse de configuration automatique du proxy (PAC) dans les paramètres :</p>
+                <div class="bg-slate-100 p-4 rounded font-mono text-sm border border-slate-300">
+                    http://proxy.sio.local/proxy.pac
+                </div>
+            </section>
+
+            <!-- 8. LDAP -->
+            <section id="ldap">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">8. Authentification via un annuaire LDAP</h2>
+                <p class="text-slate-600 mb-4">Permet la journalisation par utilisateur via l'annuaire existant.</p>
+                <div class="command-block">
+                    <pre class="code-font text-xs">apt install ldap-utils
+
+# Dans /etc/squid/squid.conf :
+auth_param basic program /usr/lib/squid/basic_ldap_auth -b ou=posixaccounts,dc=rezo,dc=home -u uid -h 172.16.3.14</pre>
+                </div>
+            </section>
+
+            <!-- 9. CONCLUSION -->
+            <section id="conclusion">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">9. Conclusion</h2>
+                <p class="text-slate-600 mb-4">Vous avez maintenant un équipement de filtrage paramétrable selon vos besoins.</p>
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-4">
+                    <h4 class="font-bold text-amber-800 text-sm">Remarque - Intégration derrière un autre proxy</h4>
+                    <p class="text-xs text-amber-700 mt-2">
+                        Dans cette hiérarchie, votre serveur sera "le fils" et l'autre "le père". Cela se détermine à l'aide de la directive <code>cache_peer</code>.
+                    </p>
+                </div>
+            </section>
+
+            <footer class="py-12 text-center text-slate-400 text-sm">
+                Document SIO 2025 - Adapté du TP Serveur Proxy
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        const apiKey = ""; // API Key fournie par l'environnement d'exécution
+
+        function setActive(el) {
+            document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        async function callGemini(prompt, systemInstruction) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] }
+            };
+
+            let retries = 5;
+            let delay = 1000;
+
+            while (retries > 0) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
+                    const data = await response.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Aucune réponse générée.";
+                } catch (error) {
+                    retries--;
+                    if (retries === 0) return "Erreur : Impossible de contacter l'IA après plusieurs tentatives. Vérifiez la disponibilité de l'API.";
+                    await new Promise(r => setTimeout(r, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        async function generateAiConfig() {
+            const promptInput = document.getElementById('ai-prompt-config');
+            const responseDiv = document.getElementById('ai-response-config');
+            const btn = document.getElementById('btn-config');
+            
+            if (!promptInput.value) return;
+            
+            btn.innerText = "✨ Génération...";
+            btn.disabled = true;
+            responseDiv.classList.add('hidden');
+
+            const sys = "Tu es un expert Linux spécialisé dans Squid Proxy. Ta mission est de générer UNIQUEMENT les lignes de configuration (ACL et http_access) basées sur la demande de l'utilisateur. Ne donne pas d'explications superflues, juste le code prêt à être copié dans squid.conf.";
+            const result = await callGemini(promptInput.value, sys);
+
+            responseDiv.innerText = result;
+            responseDiv.classList.remove('hidden');
+            btn.innerText = "✨ Générer la directive";
+            btn.disabled = false;
+        }
+
+        async function analyzeAiLog() {
+            const promptInput = document.getElementById('ai-prompt-log');
+            const responseDiv = document.getElementById('ai-response-log');
+            const btn = document.getElementById('btn-log');
+            
+            if (!promptInput.value) return;
+            
+            btn.innerText = "✨ Analyse en cours...";
+            btn.disabled = true;
+            responseDiv.classList.add('hidden');
+
+            const sys = "Tu es un expert en dépannage réseau Squid. L'utilisateur va te donner une ligne de log access.log ou une erreur. Explique en français, en une ou deux phrases simples, ce qui se passe et comment corriger le problème (ex: TCP_DENIED/403 signifie accès refusé, vérifiez les ACL).";
+            const result = await callGemini(promptInput.value, sys);
+
+            responseDiv.innerText = result;
+            responseDiv.classList.remove('hidden');
+            btn.innerText = "✨ Analyser le log";
+            btn.disabled = false;
+        }
+    </script>
+</body>
+</html>
