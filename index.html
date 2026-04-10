@@ -5,18 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dossier d'Exploitation Complet - Proxy Squid</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Chosen Palette: Slate and Indigo. Professional, technical, readable. -->
-    <!-- Application Structure Plan: Dashboard architecture with a persistent left sidebar. This allows the user (examiner/teacher) to easily navigate through the 9 steps of the TP without losing context or scrolling endlessly. Each section corresponds exactly to the TP's structure, augmented with interactive "Action demandée" blocks for the answers. An interactive AI assistant and dynamic charts are included to add analytical depth. -->
-    <!-- Visualization & Content Choices: 
-         - Bar Chart (Chart.js): Used in Section 2 to compare default cache settings vs TP recommendations, fulfilling the "Compare" data visualization goal.
-         - Doughnut Chart (Chart.js): Used in the Analysis section to simulate log data (Hits vs Misses vs Denied), fulfilling the "Inform" goal.
-         - Code Blocks: Styled specifically for readability with one-click copy functionality to facilitate testing.
-         - Interactive Tabs: Used to navigate between TP sections smoothly via JavaScript.
-    -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap');
         
@@ -80,20 +69,6 @@
         }
         .copy-badge:hover { background: #475569; }
 
-        /* Chart Containers */
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 300px;
-            max-height: 400px;
-        }
-        @media (min-width: 768px) {
-            .chart-container { height: 350px; }
-        }
-
         /* Highlight Boxes */
         .tp-action-box {
             background: #eff6ff;
@@ -130,7 +105,6 @@
                 <div class="sidebar-link block px-4 py-2 text-sm text-slate-700 rounded" data-target="conclusion">9. Conclusion</div>
                 <div class="mt-4 mb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Outils Avancés</div>
                 <div class="sidebar-link block px-4 py-2 text-sm font-bold text-indigo-600 bg-indigo-50 rounded border border-indigo-100" data-target="gemini">✨ Assistant IA Gemini</div>
-                <div class="sidebar-link block px-4 py-2 text-sm text-slate-700 rounded" data-target="dashboard">📊 Dashboard Analytics</div>
             </nav>
         </div>
     </aside>
@@ -235,17 +209,19 @@ ls -l /var/spool/squid</pre>
                 <p class="mb-6 text-slate-700"><em>Réponse : On observe la création de 16 sous-répertoires (de 00 à 0F), ce qui correspond au paramètre "16" défini dans la directive cache_dir.</em></p>
 
                 <p class="font-bold mt-6 text-slate-800">En mode serveur, une modification se fera dans les paramètres de connexion du navigateur du poste client :</p>
-                <img src="1.png" alt="Paramètres de connexion Firefox" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full">
+                <img src="1.png" alt="Paramètres de connexion Firefox" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture 1.png introuvable</p>'">
 
                 <p class="font-bold mt-6">Tester à nouveau avec le client et regarder le nouveau message d'erreur.</p>
-                <img src="2.png" alt="Erreur 403 Proxy" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full">
+                <img src="2.png" alt="Erreur 403 Proxy" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture 2.png introuvable</p>'">
 
                 <p class="font-bold mt-6">Consulter le fichier de log /var/log/squid/access.log. Recopier la ligne qui interdit l’accès à Internet.</p>
                 <div class="command-block text-sm">
                     <button class="copy-badge" onclick="copyCode(this)">Copier</button>
                     <pre class="code-font">tail -f /var/log/squid/access.log | grep TCP_DENIED</pre>
                 </div>
-                <img src="5.png" alt="Ligne access.log TCP_DENIED" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full">
+                
+                <img src="5.png" alt="Ligne access.log TCP_DENIED" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture 5.png introuvable</p>'">
+                
                 <p class="mb-6 text-slate-700"><em>Réponse (Ligne interceptée) : <code>1712345678.123 5 192.168.1.10 TCP_DENIED/403 3985 GET http://www.google.fr/ - HIER_NONE/- text/html</code></em></p>
             </section>
 
@@ -289,6 +265,9 @@ htpasswd -b /etc/squid/squidusers milou chien</pre>
 acl utilisateurs proxy_auth REQUIRED
 http_access allow utilisateurs</pre>
                 </div>
+
+                <img src="3.png" alt="Authentification Proxy" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture 3.png introuvable</p>'">
+
             </section>
 
             <!-- SECTION 5 : SQUIDGUARD -->
@@ -311,8 +290,6 @@ http_access allow utilisateurs</pre>
                     <button class="copy-badge" onclick="copyCode(this)">Copier</button>
                     <pre class="code-font">apt install lightsquid</pre>
                 </div>
-
-                <img src="3.png" alt="Lightsquid" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full">
             </section>
 
             <!-- SECTION 7 : SCRIPT PAC -->
@@ -320,11 +297,9 @@ http_access allow utilisateurs</pre>
                 <h2 class="text-3xl font-bold text-slate-900 mb-2">7. Configuration d'un navigateur via un script</h2>
                 <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
 
-                <img src="4.png" alt="Configuration PAC Navigateur" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full">
-
                 <p class="font-bold mt-6">Adresse de configuration automatique du proxy :</p>
                 <div class="command-block text-sm mb-6">
-                    <pre class="code-font">http://proxy.sio.local/proxy.pac</pre>
+                    <pre class="code-font">http://172.17.219.198/proxy.pac</pre>
                 </div>
             </section>
 
@@ -350,6 +325,9 @@ http_access allow utilisateurs</pre>
 
                 <p class="text-slate-700 mt-4 font-bold">Redémarrez Squid et testez depuis un navigateur.</p>
                 <p class="text-slate-700 mt-4 font-bold">Observez le fichier de log. Conclure.</p>
+
+                <img src="6.png" alt="Log LDAP" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture 6.png introuvable</p>'">
+
                 <p class="mb-6 text-slate-700"><em>Réponse : Dans le fichier access.log, on observe que l'adresse IP est désormais associée à l'identifiant de l'utilisateur LDAP qui s'est connecté. Cela confirme que l'authentification centralisée fonctionne et permet une traçabilité précise de chaque utilisateur.</em></p>
             </section>
 
@@ -371,7 +349,7 @@ http_access allow utilisateurs</pre>
                 <h2 class="text-3xl font-bold text-indigo-900 mb-2 flex items-center gap-3">✨ Assistant IA Gemini</h2>
                 <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
                 
-                <div class="ai-card p-6 rounded-2xl shadow-sm mb-6">
+                <div class="bg-indigo-50 border border-indigo-100 p-6 rounded-2xl shadow-sm mb-6">
                     <p class="text-sm text-indigo-800 mb-6">Cet outil exploite l'API Google Gemini pour vous assister dans l'administration de votre serveur Squid. L'API Key doit être fournie par l'environnement.</p>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -389,32 +367,6 @@ http_access allow utilisateurs</pre>
                             <textarea id="ai-prompt-log" class="w-full p-3 rounded-lg border border-indigo-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm mb-3 h-12"></textarea>
                             <button onclick="analyzeAiLog()" id="btn-log" class="w-full bg-purple-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-purple-700 transition-all text-sm">Analyser</button>
                             <div id="ai-response-log" class="mt-4 hidden p-3 bg-white border border-indigo-100 rounded-lg text-indigo-900 text-sm italic"></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 📊 DASHBOARD ANALYTICS (Data Viz) -->
-            <section id="dashboard" class="content-section">
-                <h2 class="text-3xl font-bold text-slate-900 mb-2">📊 Dashboard Analytics</h2>
-                <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Chart 1: Cache Comparison -->
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-                        <h3 class="text-lg font-bold text-slate-800 mb-4 text-center">Optimisation du Cache (Mémoire & Disque)</h3>
-                        <p class="text-xs text-slate-500 text-center mb-4">Comparaison entre paramètres par défaut et recommandation TP (Echelle Log)</p>
-                        <div class="chart-container flex-grow">
-                            <canvas id="cacheChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Chart 2: Traffic Simulation -->
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-                        <h3 class="text-lg font-bold text-slate-800 mb-4 text-center">Simulation Traffic Proxy (Statut HTTP)</h3>
-                        <p class="text-xs text-slate-500 text-center mb-4">Répartition typique des requêtes (Objectif d'un proxy en production)</p>
-                        <div class="chart-container flex-grow">
-                            <canvas id="trafficChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -440,12 +392,6 @@ http_access allow utilisateurs</pre>
                 const targetId = this.getAttribute('data-target');
                 document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
                 document.getElementById(targetId).classList.add('active');
-                
-                // Init charts if Dashboard is clicked and not initialized
-                if (targetId === 'dashboard' && !window.chartsInitialized) {
-                    initCharts();
-                    window.chartsInitialized = true;
-                }
             });
         });
 
@@ -458,60 +404,6 @@ http_access allow utilisateurs</pre>
                 setTimeout(() => {
                     toast.classList.add('translate-y-20', 'opacity-0');
                 }, 2000);
-            });
-        }
-
-        // --- Data Visualizations (Chart.js) ---
-        function initCharts() {
-            // Chart 1: Bar Chart (Cache)
-            const ctxCache = document.getElementById('cacheChart').getContext('2d');
-            new Chart(ctxCache, {
-                type: 'bar',
-                data: {
-                    labels: ['Cache RAM (MB)', 'Cache Disque (MB)'],
-                    datasets: [
-                        {
-                            label: 'Défaut',
-                            data: [16, 100],
-                            backgroundColor: '#94a3b8', // slate-400
-                        },
-                        {
-                            label: 'Recommandé (TP)',
-                            data: [256, 2000],
-                            backgroundColor: '#4f46e5', // indigo-600
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            type: 'logarithmic',
-                            title: { display: true, text: 'Taille (Mégaoctets)' }
-                        }
-                    }
-                }
-            });
-
-            // Chart 2: Doughnut Chart (Traffic Simulation)
-            const ctxTraffic = document.getElementById('trafficChart').getContext('2d');
-            new Chart(ctxTraffic, {
-                type: 'doughnut',
-                data: {
-                    labels: ['TCP_MISS (Direct)', 'TCP_HIT (Cache)', 'TCP_DENIED (Bloqué)'],
-                    datasets: [{
-                        data: [60, 25, 15],
-                        backgroundColor: ['#3b82f6', '#10b981', '#ef4444'], // blue, emerald, red
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '65%',
-                    plugins: { legend: { position: 'bottom' } }
-                }
             });
         }
 
