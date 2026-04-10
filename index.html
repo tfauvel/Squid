@@ -220,6 +220,8 @@ ls -l /var/spool/squid</pre>
                     <pre class="code-font">tail -f /var/log/squid/access.log | grep TCP_DENIED</pre>
                 </div>
                 
+                <img src="5.png" alt="Ligne access.log TCP_DENIED" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture 5.png introuvable</p>'">
+                
                 <p class="mb-6 text-slate-700"><em>Réponse (Ligne interceptée) : <code>1712345678.123 5 192.168.1.10 TCP_DENIED/403 3985 GET http://www.google.fr/ - HIER_NONE/- text/html</code></em></p>
             </section>
 
@@ -263,6 +265,8 @@ htpasswd -b /etc/squid/squidusers milou chien</pre>
 acl utilisateurs proxy_auth REQUIRED
 http_access allow utilisateurs</pre>
                 </div>
+                
+                <img src="3.png" alt="Configuration Authentification NCSA" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture 3.png introuvable</p>'">
 
             </section>
 
@@ -344,8 +348,15 @@ http_access allow utilisateurs</pre>
                 <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
                 
                 <div class="bg-indigo-50 border border-indigo-100 p-6 rounded-2xl shadow-sm mb-6">
-                    <p class="text-sm text-indigo-800 mb-6">Cet outil exploite l'API Google Gemini pour vous assister dans l'administration de votre serveur Squid. L'API Key doit être fournie par l'environnement.</p>
+                    <p class="text-sm text-indigo-800 mb-6">Cet outil exploite l'API Google Gemini pour vous assister dans l'administration de votre serveur Squid.</p>
                     
+                    <!-- AJOUT CLÉ API POUR GITHUB -->
+                    <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-sm mb-6">
+                        <label for="api-key-input" class="block text-sm font-bold text-amber-900 mb-2">🔑 Clé API Google Gemini (Requise sur GitHub) :</label>
+                        <input type="password" id="api-key-input" placeholder="Collez votre clé API ici (commence par AIza...)" class="w-full p-2 rounded border border-amber-300 focus:ring-2 focus:ring-amber-500 outline-none text-sm mb-2">
+                        <p class="text-xs text-amber-700"><strong>Important :</strong> La clé n'est pas sauvegardée. Elle est requise uniquement parce que le site est hébergé statiquement (GitHub Pages).</p>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
                             <h4 class="font-bold text-indigo-900 mb-2">🛠️ Générateur de config ACL</h4>
@@ -402,10 +413,18 @@ http_access allow utilisateurs</pre>
         }
 
         // --- Gemini API Logic ---
-        const apiKey = ""; // API Key fournie par l'environnement
+        const envApiKey = ""; // Clé API fournie par l'environnement Canvas
         
         async function callGemini(prompt, systemInstruction) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            // Sur GitHub, il n'y a pas d'environnement caché, on doit lire le champ de saisie de l'utilisateur.
+            const userKeyInput = document.getElementById('api-key-input').value.trim();
+            const activeKey = userKeyInput !== "" ? userKeyInput : envApiKey;
+
+            if (!activeKey) {
+                return "Erreur : Vous devez entrer une clé API Google Gemini dans le champ ci-dessus pour que l'assistant fonctionne sur GitHub.";
+            }
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${activeKey}`;
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
                 systemInstruction: { parts: [{ text: systemInstruction }] }
@@ -426,7 +445,7 @@ http_access allow utilisateurs</pre>
                     return data.candidates?.[0]?.content?.parts?.[0]?.text || "Aucune réponse.";
                 } catch (error) {
                     retries--;
-                    if (retries === 0) return "Erreur de connexion à l'IA.";
+                    if (retries === 0) return "Erreur de connexion à l'IA. Vérifiez que votre clé API est valide.";
                     await new Promise(r => setTimeout(r, delay));
                     delay *= 2;
                 }
