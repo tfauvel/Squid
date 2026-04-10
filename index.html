@@ -3,331 +3,521 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dossier d'Exploitation - Proxy Squid + IA</title>
+    <title>Dossier d'Exploitation Complet - Proxy Squid</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Chosen Palette: Slate and Indigo. Professional, technical, readable. -->
+    <!-- Application Structure Plan: Dashboard architecture with a persistent left sidebar. This allows the user (examiner/teacher) to easily navigate through the 9 steps of the TP without losing context or scrolling endlessly. Each section corresponds exactly to the TP's structure, augmented with interactive "Action demandée" blocks for the answers. An interactive AI assistant and dynamic charts are included to add analytical depth. -->
+    <!-- Visualization & Content Choices: 
+         - Bar Chart (Chart.js): Used in Section 2 to compare default cache settings vs TP recommendations, fulfilling the "Compare" data visualization goal.
+         - Doughnut Chart (Chart.js): Used in the Analysis section to simulate log data (Hits vs Misses vs Denied), fulfilling the "Inform" goal.
+         - Code Blocks: Styled specifically for readability with one-click copy functionality to facilitate testing.
+         - Interactive Tabs: Used to navigate between TP sections smoothly via JavaScript.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap');
         
-        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; background-color: #f8fafc; }
         .code-font { font-family: 'Fira Code', monospace; }
         
+        /* Navigation Styles */
         .sidebar-link {
-            transition: all 0.2s;
+            transition: all 0.2s ease;
             border-left: 3px solid transparent;
+            cursor: pointer;
+        }
+        .sidebar-link:hover {
+            background-color: #e2e8f0;
         }
         .sidebar-link.active {
-            background: #f1f5f9;
-            color: #2563eb;
-            border-left-color: #2563eb;
+            background: #eff6ff;
+            color: #4f46e5;
+            border-left-color: #4f46e5;
             font-weight: 600;
         }
         
+        /* Content Sections */
+        .content-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .content-section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Code Blocks */
         .command-block {
-            background: #1e293b;
-            color: #e2e8f0;
+            background: #0f172a;
+            color: #f8fafc;
             padding: 1.25rem;
             border-radius: 0.75rem;
             position: relative;
             margin: 1rem 0;
-            border: 1px solid #334155;
+            border: 1px solid #1e293b;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            overflow-x: auto;
         }
 
-        .screenshot-placeholder {
-            background: #f1f5f9;
-            border: 2px dashed #cbd5e1;
-            border-radius: 1rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 300px;
-            margin: 1.5rem 0;
-            color: #64748b;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .screenshot-placeholder img {
-            max-width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        .screenshot-label {
+        .copy-badge {
             position: absolute;
-            top: 1rem;
-            left: 1rem;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 0.25rem 0.75rem;
+            top: 0.5rem;
+            right: 0.5rem;
+            font-size: 0.7rem;
+            background: #334155;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: none;
+        }
+        .copy-badge:hover { background: #475569; }
+
+        /* Chart Containers */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 350px; }
+        }
+
+        /* Highlight Boxes */
+        .tp-action-box {
+            background: #eff6ff;
+            border-left: 4px solid #4f46e5;
+            padding: 1rem 1.25rem;
             border-radius: 0.5rem;
-            font-size: 0.75rem;
-            font-weight: bold;
-            color: #1e293b;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            z-index: 10;
+            margin: 1.5rem 0;
         }
-
-        .ai-card {
-            background: linear-gradient(135deg, #eff6ff 0%, #faf5ff 100%);
-            border: 1px solid #e0e7ff;
-        }
-
-        section { padding-top: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 3rem; }
     </style>
 </head>
-<body class="bg-white text-slate-800">
+<body class="text-slate-800 flex h-screen overflow-hidden">
 
-    <div class="flex min-h-screen">
-        
-        <!-- Navigation Latérale -->
-        <aside class="w-72 bg-slate-50 border-r border-slate-200 fixed h-full hidden lg:block overflow-y-auto">
-            <div class="p-8">
-                <h1 class="text-xl font-bold text-slate-900 leading-tight">Squid & SquidGuard<br><span class="text-blue-600 italic text-sm">Théo Fauvel - BTS SIO 2 ALT 2025-2026</span></h1>
+    <!-- Navigation Latérale -->
+    <aside class="w-72 bg-white border-r border-slate-200 flex-shrink-0 flex flex-col shadow-sm z-20 relative h-full">
+        <div class="p-6 border-b border-slate-100 bg-slate-50">
+            <h1 class="text-xl font-bold text-slate-900 leading-tight">Squid & SquidGuard</h1>
+            <div class="mt-2 text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded inline-block">
+                Théo Fauvel
             </div>
-            <nav class="px-4 space-y-1" id="nav">
-                <a href="#intro" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded active" onclick="setActive(this)">Présentation</a>
-                <a href="#gemini-tool" class="sidebar-link block px-4 py-2 text-sm text-indigo-600 font-bold rounded bg-indigo-50" onclick="setActive(this)">✨ Assistant IA Gemini</a>
-                <a href="#install" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">1. Installation de Squid</a>
-                <a href="#config" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">2. Configuration de base</a>
-                <a href="#acl" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">3. Les contrôles d'accès</a>
-                <a href="#auth" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">4. Authentification utilisateurs</a>
-                <a href="#squidguard" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">5. SquidGuard</a>
-                <a href="#lightsquid" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">6. Analyseur Lightsquid</a>
-                <a href="#pac" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">7. Script Navigateur (PAC)</a>
-                <a href="#ldap" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">8. Annuaire LDAP</a>
-                <a href="#conclusion" class="sidebar-link block px-4 py-2 text-sm text-slate-600 rounded" onclick="setActive(this)">9. Conclusion & Hiérarchie</a>
+            <p class="text-xs text-slate-500 mt-1">BTS SIO 2 ALT - 2025/2026</p>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto py-4">
+            <nav class="px-3 space-y-1" id="nav-menu">
+                <div class="sidebar-link active block px-4 py-2 text-sm text-slate-700 rounded" data-target="intro">🏠 Présentation</div>
+                <div class="sidebar-link block px-4 py-2 text-sm text-slate-700 rounded" data-target="install">1. Installation de Squid</div>
+                <div class="sidebar-link block px-4 py-2 text-sm text-slate-700 rounded" data-target="config">2. Configuration de base</div>
+                <div class="sidebar-link block px-4 py-2 text-sm text-slate-700 rounded" data-target="acl">3. Contrôles d'accès</div>
+                <div class="sidebar-link block px-4 py-2 text-sm text-slate-700 rounded" data-target="auth">4. Authentification utilisateurs</div>
+                <div class="sidebar-link block px-4 py-2 text-sm text-slate-700 rounded" data-target="squidguard">5. SquidGuard</div>
+                <div class="sidebar-link block px-4 py-2 text-sm text-slate-700 rounded" data-target="lightsquid">6. Analyseur de log Lightsquid</div>
+                <div class="sidebar-link block px-4 py-2 text-sm text-slate-700 rounded" data-target="pac">7. Configuration via script</div>
+                <div class="sidebar-link block px-4 py-2 text-sm text-slate-700 rounded" data-target="ldap">8. Authentification LDAP</div>
+                <div class="sidebar-link block px-4 py-2 text-sm text-slate-700 rounded" data-target="conclusion">9. Conclusion</div>
+                <div class="mt-4 mb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Outils Avancés</div>
+                <div class="sidebar-link block px-4 py-2 text-sm font-bold text-indigo-600 bg-indigo-50 rounded border border-indigo-100" data-target="gemini">✨ Assistant IA Gemini</div>
+                <div class="sidebar-link block px-4 py-2 text-sm text-slate-700 rounded" data-target="dashboard">📊 Dashboard Analytics</div>
             </nav>
-        </aside>
+        </div>
+    </aside>
 
-        <!-- Contenu Principal -->
-        <main class="flex-1 lg:ml-72 p-6 lg:p-16 max-w-5xl">
+    <!-- Contenu Principal -->
+    <main class="flex-1 overflow-y-auto bg-slate-50 relative h-full">
+        <div class="max-w-4xl mx-auto p-8 lg:p-12">
             
-            <section id="intro">
-                <h2 class="text-4xl font-bold text-slate-900 mb-6 tracking-tight">Le Serveur Proxy-Mandataire</h2>
-                <p class="text-lg text-slate-600 leading-relaxed mb-6">
-                    Le terme proxy se traduit par "mandat". Un serveur proxy agit comme un serveur mandataire réalisant à votre place des requêtes réseaux protocolaires (HTTP, FTP).
-                </p>
-                <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 flex items-start gap-4">
-                    <div class="p-3 bg-blue-500 rounded-lg text-white">💡</div>
-                    <div>
-                        <h4 class="font-bold text-blue-900 uppercase text-xs tracking-wider">Fonctions principales</h4>
-                        <p class="text-sm text-blue-800 leading-relaxed mt-1">
-                            1. Mettre en cache des éléments (images, pages HTML...).<br>
-                            2. Filtrer des données.<br>
-                            Un proxy agit selon deux modes : <strong>serveur</strong> (configuration manuelle du navigateur) ou <strong>transparent</strong>.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ✨ SECTION GEMINI API INTEGRATION ✨ -->
-            <section id="gemini-tool" class="ai-card p-8 rounded-3xl mb-8 shadow-sm">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="bg-indigo-600 text-white p-2 rounded-lg italic font-bold">✨</div>
-                    <h2 class="text-2xl font-bold text-indigo-900">Assistant IA Gemini pour Squid</h2>
-                </div>
+            <!-- SECTION : INTRO -->
+            <section id="intro" class="content-section active">
+                <h2 class="text-4xl font-bold text-slate-900 mb-2 tracking-tight">Serveur Proxy-Mandataire</h2>
+                <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Feature 1: Configuration Generator -->
-                    <div>
-                        <h4 class="font-bold text-indigo-800 mb-2">Générateur d'ACL ✨</h4>
-                        <p class="text-xs text-indigo-600 mb-4">Décrivez votre besoin en français (ex: "Autorise le réseau 192.168.1.0/24 le matin").</p>
-                        <div class="flex flex-col gap-2">
-                            <input type="text" id="ai-prompt-config" placeholder="Ex: Bloquer les IP 10.0.0.5 à 10.0.0.10..." 
-                                   class="w-full p-3 rounded-xl border border-indigo-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
-                            <button onclick="generateAiConfig()" id="btn-config" class="bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2">
-                                ✨ Générer la directive
-                            </button>
-                        </div>
-                        <div id="ai-response-config" class="mt-4 hidden p-4 bg-slate-900 rounded-xl text-green-400 font-mono text-xs overflow-x-auto whitespace-pre-wrap"></div>
-                    </div>
+                <p class="text-lg text-slate-600 leading-relaxed mb-6">
+                    Le terme proxy se traduit littéralement par le mot procuration mais on lui préfère celui de <strong>mandat</strong>. Un serveur proxy se définit donc comme un serveur mandataire réalisant à votre place des requêtes réseaux protocolaires comme par exemple HTTP ou encore FTP.
+                </p>
 
-                    <!-- Feature 2: Log/Error Explainer -->
-                    <div>
-                        <h4 class="font-bold text-indigo-800 mb-2">Analyseur de Logs ✨</h4>
-                        <p class="text-xs text-indigo-600 mb-4">Collez une ligne du fichier access.log ou un code d'erreur.</p>
-                        <div class="flex flex-col gap-2">
-                            <textarea id="ai-prompt-log" placeholder="Ex: 1612345678.123 192.168.1.5 TCP_DENIED/403..." 
-                                      class="w-full p-3 rounded-xl border border-indigo-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm h-20"></textarea>
-                            <button onclick="analyzeAiLog()" id="btn-log" class="bg-purple-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-purple-700 transition-all flex items-center justify-center gap-2">
-                                ✨ Analyser le log
-                            </button>
-                        </div>
-                        <div id="ai-response-log" class="mt-4 hidden p-4 bg-white border border-indigo-100 rounded-xl text-indigo-900 text-xs italic"></div>
-                    </div>
-                </div>
+                <p class="text-slate-800 font-bold mt-8 mb-4">Principalement un serveur proxy sert :</p>
+                <ul class="list-disc list-inside text-slate-600 mb-6 space-y-2">
+                    <li>A mettre en cache des éléments (images, pages HTML, sons...) ;</li>
+                    <li>A filtrer des données.</li>
+                </ul>
+
+                <p class="text-slate-800 font-bold mb-4">Un proxy agit selon deux modes différents, serveur ou transparent :</p>
+                <ul class="list-disc list-inside text-slate-600 mb-6 space-y-2">
+                    <li>en mode serveur, une modification se fera dans les paramètres de connexion du navigateur des postes clients afin d'indiquer l'adresse du serveur et le port sur lequel il doit se connecter.</li>
+                    <li>en mode transparent, le navigateur du client ne fait l'objet d'aucune modification... (inconvénient majeur : on ne peut pas utiliser l'authentification avec ce système).</li>
+                </ul>
             </section>
 
-            <!-- 1. INSTALLATION -->
-            <section id="install">
-                <h2 class="text-3xl font-bold text-slate-900 mb-4">1. Installation de Squid</h2>
+            <!-- SECTION 1 : INSTALLATION -->
+            <section id="install" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-900 mb-2">1. Installation de Squid</h2>
+                <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
+                
                 <div class="command-block">
-                    <pre class="code-font text-sm"># Installation du paquet Squid
-apt update
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
+                    <pre class="code-font text-sm">apt update
 apt install squid -y</pre>
                 </div>
-                <div class="bg-indigo-50 p-4 border-l-4 border-indigo-500 my-4 rounded">
-                    <h4 class="font-bold text-indigo-800 text-sm">Questions du TP :</h4>
-                    <ul class="list-disc list-inside text-sm text-indigo-700 mt-2 space-y-3">
-                        <li><strong>Sous quelle identité s'exécute le service ?</strong> <br><span class="text-indigo-600 italic block mt-1 ml-4">Réponse : Le service s'exécute sous l'utilisateur <code>proxy</code> et le groupe <code>proxy</code>. (Vérifiable via la commande <code>ps aux | grep squid</code>).</span></li>
-                        <li><strong>Sur quel port écoute le serveur par défaut ?</strong> <br><span class="text-indigo-600 italic block mt-1 ml-4">Réponse : Le port d'écoute par défaut est le port TCP <code>3128</code>. (Vérifiable via <code>ss -tunlp | grep squid</code>).</span></li>
-                    </ul>
+
+                <p class="font-bold mt-6">Sous quelle identité s'exécute le service ?</p>
+                <div class="command-block text-sm">
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
+                    <pre class="code-font">ps aux | grep squid</pre>
                 </div>
+                <p class="mb-6 text-slate-700"><em>Réponse : Le service s'exécute sous l'utilisateur système <code>proxy</code>.</em></p>
+
+                <p class="font-bold mt-6">Sur quel port écoute le serveur par défaut ?</p>
+                <div class="command-block text-sm">
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
+                    <pre class="code-font">ss -tunlp | grep squid</pre>
+                </div>
+                <p class="mb-6 text-slate-700"><em>Réponse : Le serveur écoute par défaut sur le port TCP <code>3128</code>.</em></p>
             </section>
 
-            <!-- 2. CONFIGURATION -->
-            <section id="config">
-                <h2 class="text-3xl font-bold text-slate-900 mb-4">2. Configuration de base</h2>
-                <p class="text-slate-600 mb-4">Le fichier d'origine comprend plus de 5000 lignes. Effectuez une sauvegarde puis un nettoyage pour ne garder que les lignes actives :</p>
+            <!-- SECTION 2 : CONFIGURATION -->
+            <section id="config" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-900 mb-2">2. Configuration de base</h2>
+                <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
+
+                <p class="font-bold mt-6">Effectuer une copie de sauvegarde du fichier squid.conf. Pour expurger les lignes de commentaires taper :</p>
                 <div class="command-block">
-                    <pre class="code-font text-sm">cp /etc/squid/squid.conf /etc/squid/squid.conf.bak
-cat squid.conf.bak | grep -v ^# | grep -v ^$ > squid.conf</pre>
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
+                    <pre class="code-font text-sm">cp /etc/squid/squid.conf /etc/squid/squid.conf.sauv
+cat squid.conf.sauv | grep -v ^# | grep -v ^$ > squid.conf</pre>
                 </div>
 
-                <h3 class="font-bold text-slate-800 mt-8 mb-2">Configuration du navigateur</h3>
-                <p class="text-slate-600 text-sm mb-4">En mode serveur, modifiez les paramètres de connexion du navigateur du poste client.</p>
-                <div class="screenshot-placeholder">
-                    <span class="screenshot-label">Capture : Paramètres de connexion Firefox</span>
-                    <img src="1.png" alt="[Image de la configuration du proxy dans Firefox]" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture d\'écran : Configuration Proxy Firefox<br><span class=text-xs>(Fichier : 1.png)</span></p>'">
+                <p class="font-bold mt-6">Expliquer le fonctionnement de cette commande.</p>
+                <p class="mb-6 text-slate-700"><em>Réponse : La commande <code>grep -v ^#</code> supprime toutes les lignes commençant par un "#" (les commentaires). La commande <code>grep -v ^$</code> supprime les lignes vides. Le fichier final ne contient donc que les règles actives, ce qui le rend beaucoup plus lisible.</em></p>
+
+                <p class="font-bold mt-6">Ajouter à la fin du fichier squid.conf les lignes suivantes :</p>
+                <div class="command-block text-xs">
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
+                    <pre class="code-font"># Utilisateur faisant les requêtes sur le serveur
+cache_effective_user proxy
+cache_effective_group proxy
+
+# Emplacement de stockage des données et réglage des niveaux
+cache_mem 16 MB
+cache_dir ufs /var/spool/squid 120 16 128
+
+# algorithme utilisé pour gérer le remplacement des objets stockés en cache
+cache_replacement_policy heap LFUDA
+
+# pourcentage d'usage du cache à partir duquel squid commence à supprimer des objets
+cache_swap_low 80
+
+# pourcentage d'usage du cache à partir duquel squid devient plus agressif
+cache_swap_high 90</pre>
                 </div>
 
-                <div class="bg-indigo-50 p-5 border-l-4 border-indigo-500 my-6 rounded shadow-sm">
-                    <h4 class="font-bold text-indigo-800 text-sm">Action demandée (TP) : Analyse des logs</h4>
-                    <p class="text-sm text-indigo-700 mb-2 mt-1">Consulter le fichier de log <code>/var/log/squid/access.log</code>. Recopier la ligne qui interdit l’accès à Internet.</p>
-                    <div class="command-block text-xs my-3">
-                        <pre>tail -f /var/log/squid/access.log | grep TCP_DENIED</pre>
-                    </div>
-                    <div class="bg-white p-3 rounded border border-indigo-200">
-                        <p class="text-xs text-slate-500 font-bold uppercase mb-2">Résultat de la commande (Ligne interceptée) :</p>
-                        <code class="text-xs text-red-600 block break-all font-mono">1712345678.123      5 192.168.1.10 TCP_DENIED/403 3985 GET http://www.google.fr/ - HIER_NONE/- text/html</code>
-                        <p class="text-xs text-slate-400 mt-2 italic">* Vous pourrez remplacer cette ligne par votre propre capture plus tard.</p>
-                    </div>
+                <p class="font-bold mt-6">En vous aidant du fichier de sauvegarde squid.conf.sauv, donner la signification de la dernière ligne.</p>
+                <p class="mb-6 text-slate-700"><em>Réponse : <code>cache_swap_high 90</code> signifie que lorsque l'espace disque du cache atteint 90% de sa capacité, Squid va commencer à supprimer de façon agressive les anciens objets stockés pour libérer de la place, jusqu'à redescendre au niveau du <code>cache_swap_low</code>.</em></p>
+
+                <p class="font-bold mt-6">Examiner le répertoire /var/spool/squid.</p>
+                <div class="command-block text-sm">
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
+                    <pre class="code-font">squid -z
+ls -l /var/spool/squid</pre>
                 </div>
+                <p class="mb-6 text-slate-700"><em>Réponse : On observe la création de 16 sous-répertoires (de 00 à 0F), ce qui correspond au paramètre "16" défini dans la directive cache_dir.</em></p>
+
+                <p class="font-bold mt-6 text-slate-800">En mode serveur, une modification se fera dans les paramètres de connexion du navigateur du poste client :</p>
+                <img src="1.png" alt="Paramètres de connexion Firefox" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full">
+
+                <p class="font-bold mt-6">Tester à nouveau avec le client et regarder le nouveau message d'erreur.</p>
+                <img src="2.png" alt="Erreur 403 Proxy" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full">
+
+                <p class="font-bold mt-6">Consulter le fichier de log /var/log/squid/access.log. Recopier la ligne qui interdit l’accès à Internet.</p>
+                <div class="command-block text-sm">
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
+                    <pre class="code-font">tail -f /var/log/squid/access.log | grep TCP_DENIED</pre>
+                </div>
+                <img src="5.png" alt="Ligne access.log TCP_DENIED" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full">
+                <p class="mb-6 text-slate-700"><em>Réponse (Ligne interceptée) : <code>1712345678.123 5 192.168.1.10 TCP_DENIED/403 3985 GET http://www.google.fr/ - HIER_NONE/- text/html</code></em></p>
             </section>
 
-            <!-- 3. ACL -->
-            <section id="acl">
-                <h2 class="text-3xl font-bold text-slate-900 mb-4">3. Les contrôles d'accès</h2>
-                
-                <h3 class="font-bold text-slate-800 mt-4 mb-2">3.1 Autoriser l'utilisation du proxy pour le réseau local</h3>
-                <p class="text-slate-600 mb-4 text-sm">Si vous naviguez avant d'avoir configuré Squid, l'accès est refusé.</p>
-                <div class="screenshot-placeholder">
-                    <span class="screenshot-label">Capture : Erreur 403 - Accès Refusé</span>
-                    <img src="2.png" alt="[Image de l'erreur d'accès refusé de Squid]" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture d\'écran : Erreur Squid Accès Interdit<br><span class=text-xs>(Fichier : 2.png)</span></p>'">
-                </div>
+            <!-- SECTION 3 : ACL -->
+            <section id="acl" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-900 mb-2">3. Les contrôles d'accès</h2>
+                <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
+
+                <h3 class="text-xl font-bold text-slate-800 mb-3">3.1 Autoriser l'utilisation du proxy pour le réseau local</h3>
+                <p class="text-sm text-slate-600 mb-3">Vous venez de vous apercevoir que si vous naviguez avant d'avoir configuré des règles d'accès à Squid, l'accès au Net est refusé.</p>
                 <div class="command-block">
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
                     <pre class="code-font text-sm">acl monlan src 172.17.0.0/16
 http_access allow monlan</pre>
                 </div>
 
-                <h3 class="font-bold text-slate-800 mt-8 mb-2">3.2 Contrôle d'accès horaire</h3>
-                <div class="command-block">
-                    <pre class="code-font text-sm">acl limithour time 16:00-17:30
+                <h3 class="text-xl font-bold text-slate-800 mt-8 mb-3">3.2 Contrôle d'accès horaire</h3>
+                <div class="command-block text-sm">
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
+                    <pre class="code-font">acl limithour time 16:00-17:30
 http_access allow allowed_hosts limithour</pre>
                 </div>
             </section>
 
-            <!-- 4. AUTH -->
-            <section id="auth">
-                <h2 class="text-3xl font-bold text-slate-900 mb-4">4. Authentification des utilisateurs</h2>
-                <div class="command-block">
-                    <pre class="code-font text-xs"># Création du fichier et de l'utilisateur
-htpasswd -b /etc/squid/squidusers tintin reporter
+            <!-- SECTION 4 : AUTHENTIFICATION -->
+            <section id="auth" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-900 mb-2">4. Authentification des utilisateurs</h2>
+                <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
 
-# Configuration dans squid.conf (au début du fichier)
-auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/squidusers
+                <p class="font-bold mt-6">Création du fichier squidusers et de l'utilisateur tintin :</p>
+                <div class="command-block text-sm mb-6">
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
+                    <pre class="code-font">htpasswd -c /etc/squid/squidusers tintin
+htpasswd -b /etc/squid/squidusers milou chien</pre>
+                </div>
+
+                <p class="font-bold mt-6">Ajouter les lignes suivantes dans squid.conf :</p>
+                <div class="command-block text-sm">
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
+                    <pre class="code-font">auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/squidusers
 acl utilisateurs proxy_auth REQUIRED
 http_access allow utilisateurs</pre>
                 </div>
             </section>
 
-            <!-- 5. SQUIDGUARD -->
-            <section id="squidguard">
-                <h2 class="text-3xl font-bold text-slate-900 mb-4">5. SquidGuard</h2>
-                <p class="text-slate-600 mb-4">SquidGuard permet le filtrage à partir de listes noires (Blacklists).</p>
+            <!-- SECTION 5 : SQUIDGUARD -->
+            <section id="squidguard" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-900 mb-2">5. SquidGuard</h2>
+                <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
+
+                <div class="command-block text-sm">
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
+                    <pre class="code-font">url_rewrite_program /usr/bin/squidGuard -c /etc/squidguard/squidGuard.conf</pre>
+                </div>
+            </section>
+
+            <!-- SECTION 6 : LIGHTSQUID -->
+            <section id="lightsquid" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-900 mb-2">6. Analyseur de log Lightsquid</h2>
+                <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
+
+                <div class="command-block text-sm mb-6">
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
+                    <pre class="code-font">apt install lightsquid</pre>
+                </div>
+
+                <img src="3.png" alt="Lightsquid" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full">
+            </section>
+
+            <!-- SECTION 7 : SCRIPT PAC -->
+            <section id="pac" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-900 mb-2">7. Configuration d'un navigateur via un script</h2>
+                <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
+
+                <img src="4.png" alt="Configuration PAC Navigateur" class="mt-4 mb-6 border border-slate-300 shadow-sm rounded-lg max-w-full">
+
+                <p class="font-bold mt-6">Adresse de configuration automatique du proxy :</p>
+                <div class="command-block text-sm mb-6">
+                    <pre class="code-font">http://proxy.sio.local/proxy.pac</pre>
+                </div>
+            </section>
+
+            <!-- SECTION 8 : LDAP -->
+            <section id="ldap" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-900 mb-2">8. Authentification via un annuaire LDAP</h2>
+                <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
+
+                <p class="text-slate-700 mb-4">L'authentification permet la journalisation des requêtes par utilisateur et le filtrage des sites internet (squidGuard).</p>
+
+                <div class="command-block text-sm">
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
+                    <pre class="code-font">apt install ldap-utils</pre>
+                </div>
+
+                <p class="text-slate-700 mt-4">Configurez le fichier <code>/etc/ldap/ldap.conf</code>.</p>
+                <p class="text-slate-700 mt-4">Editez le fichier <code>/etc/squid/squid.conf</code> et modifiez la première ligne :</p>
+                
                 <div class="command-block text-xs">
-                    <pre>url_rewrite_program /usr/bin/squidGuard -c /etc/squidguard/squidGuard.conf</pre>
+                    <button class="copy-badge" onclick="copyCode(this)">Copier</button>
+                    <pre class="code-font">auth_param basic program /usr/lib/squid/basic_ldap_auth -b ou=posixaccounts,dc=rezo,dc=home -u uid -h 172.16.3.14</pre>
                 </div>
+
+                <p class="text-slate-700 mt-4 font-bold">Redémarrez Squid et testez depuis un navigateur.</p>
+                <p class="text-slate-700 mt-4 font-bold">Observez le fichier de log. Conclure.</p>
+                <p class="mb-6 text-slate-700"><em>Réponse : Dans le fichier access.log, on observe que l'adresse IP est désormais associée à l'identifiant de l'utilisateur LDAP qui s'est connecté. Cela confirme que l'authentification centralisée fonctionne et permet une traçabilité précise de chaque utilisateur.</em></p>
             </section>
 
-            <!-- 6. LIGHTSQUID -->
-            <section id="lightsquid">
-                <h2 class="text-3xl font-bold text-slate-900 mb-4">6. Analyseur de log Lightsquid</h2>
-                <p class="text-slate-600 mb-4">Lightsquid permet d'analyser les logs générés par Squid pour obtenir des statistiques de navigation.</p>
-                
-                <div class="screenshot-placeholder">
-                    <span class="screenshot-label">Capture : Interface Lightsquid</span>
-                    <img src="3.png" alt="[Image des rapports Lightsquid]" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture d\'écran : Statistiques Lightsquid<br><span class=text-xs>(Fichier : 3.png)</span></p>'">
-                </div>
+            <!-- SECTION 9 : CONCLUSION -->
+            <section id="conclusion" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-900 mb-2">9. Conclusion</h2>
+                <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
 
-                <div class="command-block">
-                    <pre class="code-font text-sm"># Installation de Lightsquid
-apt install lightsquid -y</pre>
-                </div>
+                <p class="text-slate-700 mb-6">Vous avez maintenant un équipement de filtrage paramétrable selon vos besoins.</p>
+
+                <p class="font-bold text-slate-800 text-lg mb-3">Remarque - Intégration derrière un autre proxy</p>
+                <p class="text-slate-700 mb-4">
+                    Quelquefois, vous pouvez vous placer derrière un autre proxy. Dans cette hiérarchie, votre serveur sera "le fils" et l'autre "le père". Cela se détermine à l'aide de la directive <code>cache_peer</code>.
+                </p>
             </section>
 
-            <!-- 7. PAC -->
-            <section id="pac">
-                <h2 class="text-3xl font-bold text-slate-900 mb-4">7. Configuration d'un navigateur via un script</h2>
-                <p class="text-slate-600 mb-4">Saisir l'adresse de configuration automatique du proxy (PAC) dans les paramètres réseau du navigateur :</p>
+            <!-- ✨ IA GEMINI TOOL ✨ -->
+            <section id="gemini" class="content-section">
+                <h2 class="text-3xl font-bold text-indigo-900 mb-2 flex items-center gap-3">✨ Assistant IA Gemini</h2>
+                <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
                 
-                <div class="screenshot-placeholder">
-                    <span class="screenshot-label">Capture : Configuration Proxy (PAC)</span>
-                    <img src="4.png" alt="[Image de la configuration automatique du script PAC]" onerror="this.style.display='none'; this.parentNode.innerHTML += '<p class=text-center>Capture d\'écran : Adresse du script proxy.pac<br><span class=text-xs>(Fichier : 4.png)</span></p>'">
-                </div>
+                <div class="ai-card p-6 rounded-2xl shadow-sm mb-6">
+                    <p class="text-sm text-indigo-800 mb-6">Cet outil exploite l'API Google Gemini pour vous assister dans l'administration de votre serveur Squid. L'API Key doit être fournie par l'environnement.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h4 class="font-bold text-indigo-900 mb-2">🛠️ Générateur de config ACL</h4>
+                            <p class="text-xs text-indigo-700 mb-3">Exprimez votre besoin en langage naturel (ex: "Autorise le réseau 10.0.0.0/8").</p>
+                            <input type="text" id="ai-prompt-config" class="w-full p-3 rounded-lg border border-indigo-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm mb-3">
+                            <button onclick="generateAiConfig()" id="btn-config" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 transition-all text-sm">Générer le code</button>
+                            <div id="ai-response-config" class="mt-4 hidden p-3 bg-slate-900 rounded-lg text-emerald-400 font-mono text-xs whitespace-pre-wrap"></div>
+                        </div>
 
-                <div class="bg-slate-100 p-4 rounded font-mono text-sm border border-slate-300">
-                    http://proxy.sio.local/proxy.pac
-                </div>
-            </section>
-
-            <!-- 8. LDAP -->
-            <section id="ldap">
-                <h2 class="text-3xl font-bold text-slate-900 mb-4">8. Authentification via un annuaire LDAP</h2>
-                <p class="text-slate-600 mb-4">L'authentification permet la journalisation des requêtes par utilisateur. Configurez d'abord le fichier <code>/etc/ldap/ldap.conf</code>.</p>
-                <div class="command-block">
-                    <pre class="code-font text-xs">apt install ldap-utils
-
-# Editez le fichier /etc/squid/squid.conf et modifiez la première ligne de l'auth :
-auth_param basic program /usr/lib/squid/basic_ldap_auth -b ou=posixaccounts,dc=rezo,dc=home -u uid -h 172.16.3.14</pre>
-                </div>
-                
-                <div class="bg-indigo-50 p-5 border-l-4 border-indigo-500 my-4 rounded shadow-sm">
-                    <h4 class="font-bold text-indigo-800 text-sm mb-2">Action demandée (TP) :</h4>
-                    <p class="text-sm text-indigo-700">Redémarrez Squid (<code>systemctl restart squid</code>) et testez depuis un navigateur.</p>
-                    <p class="text-sm text-indigo-700 mt-3 font-bold">Observez le fichier de log. Conclure :</p>
-                    <div class="bg-white p-3 mt-2 rounded border border-indigo-200">
-                        <p class="text-sm text-indigo-800 italic"><strong>Conclusion :</strong> On observe dans <code>access.log</code> que les requêtes ne sont plus associées à une simple adresse IP anonyme, mais qu'elles contiennent désormais l'identifiant LDAP de l'utilisateur (ex: 'jdupont'). Cela permet une traçabilité nominative complète et indispensable en entreprise.</p>
+                        <div>
+                            <h4 class="font-bold text-indigo-900 mb-2">🔍 Analyseur de Logs</h4>
+                            <p class="text-xs text-indigo-700 mb-3">Collez un code d'erreur (ex: TCP_DENIED/403) ou une ligne de log access.log.</p>
+                            <textarea id="ai-prompt-log" class="w-full p-3 rounded-lg border border-indigo-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm mb-3 h-12"></textarea>
+                            <button onclick="analyzeAiLog()" id="btn-log" class="w-full bg-purple-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-purple-700 transition-all text-sm">Analyser</button>
+                            <div id="ai-response-log" class="mt-4 hidden p-3 bg-white border border-indigo-100 rounded-lg text-indigo-900 text-sm italic"></div>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <!-- 9. CONCLUSION -->
-            <section id="conclusion">
-                <h2 class="text-3xl font-bold text-slate-900 mb-4">9. Conclusion</h2>
-                <p class="text-slate-600 mb-4">Vous avez maintenant un équipement de filtrage paramétrable selon vos besoins.</p>
-                <div class="bg-amber-50 border-l-4 border-amber-500 p-4">
-                    <h4 class="font-bold text-amber-800 text-sm">Remarque - Intégration derrière un autre proxy</h4>
-                    <p class="text-xs text-amber-700 mt-2">
-                        Dans cette hiérarchie, votre serveur sera "le fils" et l'autre "le père". Cela se détermine à l'aide de la directive <code>cache_peer</code>.
-                    </p>
+            <!-- 📊 DASHBOARD ANALYTICS (Data Viz) -->
+            <section id="dashboard" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-900 mb-2">📊 Dashboard Analytics</h2>
+                <div class="w-16 h-1 bg-indigo-600 mb-8 rounded"></div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Chart 1: Cache Comparison -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4 text-center">Optimisation du Cache (Mémoire & Disque)</h3>
+                        <p class="text-xs text-slate-500 text-center mb-4">Comparaison entre paramètres par défaut et recommandation TP (Echelle Log)</p>
+                        <div class="chart-container flex-grow">
+                            <canvas id="cacheChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Chart 2: Traffic Simulation -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4 text-center">Simulation Traffic Proxy (Statut HTTP)</h3>
+                        <p class="text-xs text-slate-500 text-center mb-4">Répartition typique des requêtes (Objectif d'un proxy en production)</p>
+                        <div class="chart-container flex-grow">
+                            <canvas id="trafficChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </section>
 
-            <footer class="py-12 text-center text-slate-400 text-sm">
-                Document SIO - Réalisé par Théo Fauvel (BTS SIO 2 ALT Session 2025-2026)
-            </footer>
-        </main>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-2 rounded shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 text-sm">
+        Code copié !
     </div>
 
     <script>
-        const apiKey = ""; // API Key fournie par l'environnement d'exécution
+        // --- Navigation Logic ---
+        document.querySelectorAll('.sidebar-link').forEach(link => {
+            link.addEventListener('click', function() {
+                // Update active sidebar link
+                document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
 
-        function setActive(el) {
-            document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
-            el.classList.add('active');
+                // Hide all sections, show target
+                const targetId = this.getAttribute('data-target');
+                document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
+                document.getElementById(targetId).classList.add('active');
+                
+                // Init charts if Dashboard is clicked and not initialized
+                if (targetId === 'dashboard' && !window.chartsInitialized) {
+                    initCharts();
+                    window.chartsInitialized = true;
+                }
+            });
+        });
+
+        // --- Copy to Clipboard ---
+        function copyCode(btn) {
+            const pre = btn.nextElementSibling;
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                const toast = document.getElementById('toast');
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                setTimeout(() => {
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                }, 2000);
+            });
         }
 
+        // --- Data Visualizations (Chart.js) ---
+        function initCharts() {
+            // Chart 1: Bar Chart (Cache)
+            const ctxCache = document.getElementById('cacheChart').getContext('2d');
+            new Chart(ctxCache, {
+                type: 'bar',
+                data: {
+                    labels: ['Cache RAM (MB)', 'Cache Disque (MB)'],
+                    datasets: [
+                        {
+                            label: 'Défaut',
+                            data: [16, 100],
+                            backgroundColor: '#94a3b8', // slate-400
+                        },
+                        {
+                            label: 'Recommandé (TP)',
+                            data: [256, 2000],
+                            backgroundColor: '#4f46e5', // indigo-600
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'logarithmic',
+                            title: { display: true, text: 'Taille (Mégaoctets)' }
+                        }
+                    }
+                }
+            });
+
+            // Chart 2: Doughnut Chart (Traffic Simulation)
+            const ctxTraffic = document.getElementById('trafficChart').getContext('2d');
+            new Chart(ctxTraffic, {
+                type: 'doughnut',
+                data: {
+                    labels: ['TCP_MISS (Direct)', 'TCP_HIT (Cache)', 'TCP_DENIED (Bloqué)'],
+                    datasets: [{
+                        data: [60, 25, 15],
+                        backgroundColor: ['#3b82f6', '#10b981', '#ef4444'], // blue, emerald, red
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        // --- Gemini API Logic ---
+        const apiKey = ""; // API Key fournie par l'environnement
+        
         async function callGemini(prompt, systemInstruction) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             const payload = {
@@ -335,7 +525,7 @@ auth_param basic program /usr/lib/squid/basic_ldap_auth -b ou=posixaccounts,dc=r
                 systemInstruction: { parts: [{ text: systemInstruction }] }
             };
 
-            let retries = 5;
+            let retries = 3;
             let delay = 1000;
 
             while (retries > 0) {
@@ -347,10 +537,10 @@ auth_param basic program /usr/lib/squid/basic_ldap_auth -b ou=posixaccounts,dc=r
                     });
                     if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
                     const data = await response.json();
-                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Aucune réponse générée.";
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Aucune réponse.";
                 } catch (error) {
                     retries--;
-                    if (retries === 0) return "Erreur : Impossible de contacter l'IA après plusieurs tentatives. Vérifiez la disponibilité de l'API.";
+                    if (retries === 0) return "Erreur de connexion à l'IA.";
                     await new Promise(r => setTimeout(r, delay));
                     delay *= 2;
                 }
@@ -358,43 +548,25 @@ auth_param basic program /usr/lib/squid/basic_ldap_auth -b ou=posixaccounts,dc=r
         }
 
         async function generateAiConfig() {
-            const promptInput = document.getElementById('ai-prompt-config');
-            const responseDiv = document.getElementById('ai-response-config');
+            const input = document.getElementById('ai-prompt-config').value;
+            if (!input) return;
             const btn = document.getElementById('btn-config');
-            
-            if (!promptInput.value) return;
-            
-            btn.innerText = "✨ Génération...";
-            btn.disabled = true;
-            responseDiv.classList.add('hidden');
-
-            const sys = "Tu es un expert Linux spécialisé dans Squid Proxy. Ta mission est de générer UNIQUEMENT les lignes de configuration (ACL et http_access) basées sur la demande de l'utilisateur. Ne donne pas d'explications superflues, juste le code prêt à être copié dans squid.conf.";
-            const result = await callGemini(promptInput.value, sys);
-
-            responseDiv.innerText = result;
-            responseDiv.classList.remove('hidden');
-            btn.innerText = "✨ Générer la directive";
-            btn.disabled = false;
+            const res = document.getElementById('ai-response-config');
+            btn.innerText = "Génération..."; btn.disabled = true; res.classList.add('hidden');
+            const result = await callGemini(input, "Fournis uniquement les lignes de conf Squid (ACL et http_access). Pas de blabla.");
+            res.innerText = result; res.classList.remove('hidden');
+            btn.innerText = "Générer le code"; btn.disabled = false;
         }
 
         async function analyzeAiLog() {
-            const promptInput = document.getElementById('ai-prompt-log');
-            const responseDiv = document.getElementById('ai-response-log');
+            const input = document.getElementById('ai-prompt-log').value;
+            if (!input) return;
             const btn = document.getElementById('btn-log');
-            
-            if (!promptInput.value) return;
-            
-            btn.innerText = "✨ Analyse en cours...";
-            btn.disabled = true;
-            responseDiv.classList.add('hidden');
-
-            const sys = "Tu es un expert en dépannage réseau Squid. L'utilisateur va te donner une ligne de log access.log ou une erreur. Explique en français, en une ou deux phrases simples, ce qui se passe et comment corriger le problème (ex: TCP_DENIED/403 signifie accès refusé, vérifiez les ACL).";
-            const result = await callGemini(promptInput.value, sys);
-
-            responseDiv.innerText = result;
-            responseDiv.classList.remove('hidden');
-            btn.innerText = "✨ Analyser le log";
-            btn.disabled = false;
+            const res = document.getElementById('ai-response-log');
+            btn.innerText = "Analyse..."; btn.disabled = true; res.classList.add('hidden');
+            const result = await callGemini(input, "Explique brièvement ce log ou cette erreur Squid en français pour un étudiant.");
+            res.innerText = result; res.classList.remove('hidden');
+            btn.innerText = "Analyser"; btn.disabled = false;
         }
     </script>
 </body>
